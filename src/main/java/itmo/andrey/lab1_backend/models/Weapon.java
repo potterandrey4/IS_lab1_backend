@@ -1,4 +1,4 @@
-package itmo.andrey.lab1_backend.model;
+package itmo.andrey.lab1_backend.models;
 
 public enum Weapon {
 	HEAVY_BOLTGUN,

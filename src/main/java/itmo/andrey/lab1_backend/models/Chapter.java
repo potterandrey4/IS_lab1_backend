@@ -1,4 +1,4 @@
-package itmo.andrey.lab1_backend.model;
+package itmo.andrey.lab1_backend.models;
 
 public class Chapter {
 	private String name; //Поле не может быть null, Строка не может быть пустой

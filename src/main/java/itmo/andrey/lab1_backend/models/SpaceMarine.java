@@ -1,4 +1,4 @@
-package itmo.andrey.lab1_backend.model;
+package itmo.andrey.lab1_backend.models;
 
 public class SpaceMarine {
 	private long id; //Значение поля должно быть больше 0, Значение этого поля должно быть уникальным, Значение этого поля должно генерироваться автоматически
