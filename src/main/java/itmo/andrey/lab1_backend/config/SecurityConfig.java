@@ -30,7 +30,7 @@ public class SecurityConfig {
 		http
 				.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/api/signin", "/api/signup", "/api/verify-token").permitAll()  // Доступ к этим URL
+						.requestMatchers("/auth/signin", "/auth/signup", "/auth/verify-token").permitAll()  // Доступ к этим URL
 						.anyRequest().authenticated()  // Остальные запросы требуют авторизации
 				)
 				.sessionManagement(session -> session
