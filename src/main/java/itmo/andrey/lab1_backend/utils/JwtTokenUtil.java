@@ -15,8 +15,6 @@ public class JwtTokenUtil {
 	@Value("${jwt.expiration}")
 	private Long jwtExpiration;
 
-	// Метод для генерации JWT токена
-	// передавать мыло
 	public String generateJwtToken(String email) {
 		return Jwts.builder()
 				.setSubject(email)
@@ -38,7 +36,7 @@ public class JwtTokenUtil {
 	}
 
 	// Получаем имя пользователя из токена
-	public String getUsernameFromJwtToken(String token) {
+	public String getEmailFromJwtToken(String token) {
 		return Jwts.parser()
 				.setSigningKey(jwtSecret)
 				.parseClaimsJws(token)

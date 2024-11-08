@@ -1,8 +1,8 @@
 package itmo.andrey.lab1_backend.contollers;
 
 import itmo.andrey.lab1_backend.entities.User;
-import itmo.andrey.lab1_backend.models.SigninForm;
-import itmo.andrey.lab1_backend.models.SignupForm;
+import itmo.andrey.lab1_backend.forms.SigninForm;
+import itmo.andrey.lab1_backend.forms.SignupForm;
 import itmo.andrey.lab1_backend.repositories.UserRepository;
 import itmo.andrey.lab1_backend.utils.JwtTokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,7 +62,7 @@ public class AuthController {
 
 		try {
 			validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-			String emailFromToken = jwtTokenUtil.getUsernameFromJwtToken(tokenWithoutBearer);
+			String emailFromToken = jwtTokenUtil.getEmailFromJwtToken(tokenWithoutBearer);
 			correctName = userRepository.findByEmail(emailFromToken) != null;
 		} catch (Exception e) {
 			return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");

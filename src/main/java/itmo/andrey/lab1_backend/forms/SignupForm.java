@@ -1,4 +1,4 @@
-package itmo.andrey.lab1_backend.models;
+package itmo.andrey.lab1_backend.forms;
 
 public class SignupForm {
 

@@ -1,15 +1,15 @@
-package itmo.andrey.lab1_backend.models;
+package itmo.andrey.lab1_backend.forms;
 
 public class SigninForm {
-	private String name;
+	private String email;
 	private String password;
 
 	public String getEmail() {
-		return name;
+		return email;
 	}
 
-	public void setEmail(String name) {
-		this.name = name;
+	public void setEmail(String email) {
+		this.email = email;
 	}
 
 	public String getPassword() {
