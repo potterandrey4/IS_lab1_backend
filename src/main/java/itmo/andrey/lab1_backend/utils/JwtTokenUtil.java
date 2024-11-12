@@ -16,6 +16,7 @@ public class JwtTokenUtil {
 	private Long jwtExpiration;
 
 	public String generateJwtToken(String email) {
+		System.out.println("Generating token for email: " + email); // Логирование email при генерации
 		return Jwts.builder()
 				.setSubject(email)
 				.setIssuedAt(new Date())
@@ -24,7 +25,7 @@ public class JwtTokenUtil {
 				.compact();
 	}
 
-	// Метод для валидации JWT токена
+
 	public boolean validateJwtToken(String token) {
 		try {
 			Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token);
@@ -35,12 +36,18 @@ public class JwtTokenUtil {
 		return false;
 	}
 
-	// Получаем имя пользователя из токена
 	public String getEmailFromJwtToken(String token) {
-		return Jwts.parser()
-				.setSigningKey(jwtSecret)
-				.parseClaimsJws(token)
-				.getBody()
-				.getSubject();
+		try {
+			String email = Jwts.parser()
+					.setSigningKey(jwtSecret)
+					.parseClaimsJws(token)
+					.getBody()
+					.getSubject();
+			return email;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
+
 }

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*")
 @RequestMapping("/auth")
 public class AuthController {
-
 	private final JwtTokenUtil jwtTokenUtil;
 	private final UserRepository userRepository;
 

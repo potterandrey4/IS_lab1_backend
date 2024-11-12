@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface SpaceMarineRepository extends JpaRepository<SpaceMarine, Long> {
 	List<SpaceMarine> findByUserEmail(String userEmail);
-
+	SpaceMarine findSpaceMarineById(Long id);
 }

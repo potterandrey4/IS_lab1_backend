@@ -4,6 +4,8 @@ import itmo.andrey.lab1_backend.entities.SpaceMarine;
 import itmo.andrey.lab1_backend.forms.SpaceMarineForm;
 import itmo.andrey.lab1_backend.repositories.SpaceMarineRepository;
 import itmo.andrey.lab1_backend.utils.JwtTokenUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -67,6 +69,26 @@ public class SpaceMarineController {
 		}
 		else {
 			return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
+		}
+	}
+
+	@PostMapping("get/{id}")
+	public ResponseEntity<?> get(@PathVariable("id") Long id, @RequestHeader("Authorization") String token) {
+		if (token == null || !token.startsWith("Bearer ")) {
+			return ResponseEntity.status(400).body("{\"error\":\"Некорректный заголовок авторизации\"}");
+		}
+		String tokenWithoutBearer = token.substring(7);
+		boolean validToken;
+		try {
+			validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
+		} catch (Exception e) {
+			return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
+		}
+
+		if (validToken) {
+			return ResponseEntity.ok().body(spaceMarineRepository.findById(id));
+		} else {
+			return ResponseEntity.status(400).body("{\"error\":\"Данного id не существует\"}");
 		}
 	}
 
@@ -155,7 +177,6 @@ public class SpaceMarineController {
 		return ResponseEntity.ok(allMarines);
 	}
 
-	// Метод для получения объектов SpaceMarine пользователя
 	@PostMapping("/user-objects")
 	public ResponseEntity<?> getUserObjects(@RequestHeader("Authorization") String token) {
 		if (token == null || !token.startsWith("Bearer ")) {
