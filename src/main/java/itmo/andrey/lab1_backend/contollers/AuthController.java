@@ -24,9 +24,9 @@ public class AuthController {
 
 	@PostMapping("/signin")
 	public ResponseEntity<?> signinForm(@RequestBody SigninForm formData) {
-		User user = userRepository.findByEmail(formData.getEmail());
+		User user = userRepository.findByName(formData.getName());
 		if (user != null && user.getPassword().equals(formData.getPassword())) {
-			String jwtToken = jwtTokenUtil.generateJwtToken(user.getEmail());
+			String jwtToken = jwtTokenUtil.generateJwtToken(user.getName());
 			return ResponseEntity.ok("{\"token\":\"" + jwtToken + "\"}");
 		} else {
 			return ResponseEntity.status(401).body("{\"error\":\"Invalid credentials\"}");
@@ -35,10 +35,10 @@ public class AuthController {
 
 	@PostMapping("/signup")
 	public ResponseEntity<?> signupForm(@RequestBody SignupForm formData) {
-		User newUser = new User(formData.getName(), formData.getEmail(), formData.getPassword());
-		String jwtToken = jwtTokenUtil.generateJwtToken(newUser.getEmail());
-		if (userRepository.existsByEmail(newUser.getEmail())) {
-			return ResponseEntity.status(409).body("{\"error\":\"" + "данный email занят, попробуйте другой или войдите в существующий аккаунт" + "\"}");
+		User newUser = new User(formData.getName(), formData.getPassword());
+		String jwtToken = jwtTokenUtil.generateJwtToken(newUser.getName());
+		if (userRepository.existsByName(newUser.getName())) {
+			return ResponseEntity.status(409).body("{\"error\":\"" + "данный логин занят, попробуйте другой или войдите в существующий аккаунт" + "\"}");
 		} else {
 			try {
 				userRepository.save(newUser);
@@ -61,8 +61,8 @@ public class AuthController {
 
 		try {
 			validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-			String emailFromToken = jwtTokenUtil.getEmailFromJwtToken(tokenWithoutBearer);
-			correctName = userRepository.findByEmail(emailFromToken) != null;
+			String nameFromJwtToken = jwtTokenUtil.getNameFromJwtToken(tokenWithoutBearer);
+			correctName = userRepository.findByName(nameFromJwtToken) != null;
 		} catch (Exception e) {
 			return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
 		}

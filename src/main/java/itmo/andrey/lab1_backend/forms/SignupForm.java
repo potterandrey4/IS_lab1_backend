@@ -3,7 +3,6 @@ package itmo.andrey.lab1_backend.forms;
 public class SignupForm {
 
 	private String name;
-	private String email;
 	private String password;
 
 	public String getName() {
@@ -14,13 +13,6 @@ public class SignupForm {
 		this.name = name;
 	}
 
-	public String getEmail() {
-		return email;
-	}
-
-	public void setEmail(String email) {
-		this.email = email;
-	}
 
 	public String getPassword() {
 		return password;

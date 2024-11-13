@@ -13,33 +13,44 @@ public class SpaceMarine {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false)
 	private Long id;
+
 	@Column(nullable = false)
 	private String name;
-	@Column(nullable = false, name="user_email")
-	private String userEmail;
+
+	@Column(nullable = false, name="user_name")
+	private String userName;
+
 	@Column(nullable = false)
 	private BigInteger coordinates_x;
+
 	@Column(nullable = false)
 	private BigDecimal coordinates_y;
+
 	@Column(nullable = false)
 	private String creationDate;
-	@Column(nullable = false)
-	private String chapter_name;
-	@Column(nullable = false)
-	private BigDecimal chapter_marinesCount;
-	@Column(nullable = false)
-	private String chapter_world;
+
 	@Column(nullable = false)
 	private BigInteger health;
+
 	@Column(nullable = false)
 	private BigDecimal height;
+
 	@Column(nullable = false)
 	private String category;
+
 	@Column(nullable = false)
 	private String weaponType;
 
+	@ManyToOne
+	@JoinColumn(name = "chapter_id", nullable = false)
+	private Chapter chapter;
+
 	public Long getId() {
 		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
 	}
 
 	public String getName() {
@@ -48,6 +59,14 @@ public class SpaceMarine {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
 	}
 
 	public BigInteger getCoordinates_x() {
@@ -72,30 +91,6 @@ public class SpaceMarine {
 
 	public void setCreationDate(String creationDate) {
 		this.creationDate = creationDate;
-	}
-
-	public String getChapter_name() {
-		return chapter_name;
-	}
-
-	public void setChapter_name(String chapter_name) {
-		this.chapter_name = chapter_name;
-	}
-
-	public BigDecimal getChapter_marinesCount() {
-		return chapter_marinesCount;
-	}
-
-	public void setChapter_marinesCount(BigDecimal chapter_marinesCount) {
-		this.chapter_marinesCount = chapter_marinesCount;
-	}
-
-	public String getChapter_world() {
-		return chapter_world;
-	}
-
-	public void setChapter_world(String chapter_world) {
-		this.chapter_world = chapter_world;
 	}
 
 	public BigInteger getHealth() {
@@ -130,11 +125,11 @@ public class SpaceMarine {
 		this.weaponType = weaponType;
 	}
 
-	public String getUser_email() {
-		return userEmail;
+	public Chapter getChapter() {
+		return chapter;
 	}
 
-	public void setUser_email(String email) {
-		this.userEmail = email;
+	public void setChapter(Chapter chapter) {
+		this.chapter = chapter;
 	}
 }

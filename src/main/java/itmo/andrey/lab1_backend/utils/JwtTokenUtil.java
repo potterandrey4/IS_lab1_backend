@@ -15,10 +15,9 @@ public class JwtTokenUtil {
 	@Value("${jwt.expiration}")
 	private Long jwtExpiration;
 
-	public String generateJwtToken(String email) {
-		System.out.println("Generating token for email: " + email); // Логирование email при генерации
+	public String generateJwtToken(String name) {
 		return Jwts.builder()
-				.setSubject(email)
+				.setSubject(name)
 				.setIssuedAt(new Date())
 				.setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
 				.signWith(SignatureAlgorithm.HS512, jwtSecret)
@@ -36,14 +35,14 @@ public class JwtTokenUtil {
 		return false;
 	}
 
-	public String getEmailFromJwtToken(String token) {
+	public String getNameFromJwtToken(String token) {
 		try {
-			String email = Jwts.parser()
+			String name = Jwts.parser()
 					.setSigningKey(jwtSecret)
 					.parseClaimsJws(token)
 					.getBody()
 					.getSubject();
-			return email;
+			return name;
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;

@@ -9,14 +9,24 @@ public class Chapter {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false)
     private Long id;
-    @Column(nullable = false, name="user_email")
-    private String userEmail;
+    @Column(nullable = false, name="user_name")
+    private String userName;
     @Column(nullable = false)
     private String name;
     @Column(nullable = false)
     private String count;
-    @Column(nullable = false)
+    @Column()
     private String world;
+
+    public Chapter() {
+    }
+
+    public Chapter(String userName, String name, String count, String world) {
+        this.userName = userName;
+        this.name = name;
+        this.count = count;
+        this.world = world;
+    }
 
     public Long getId() {
         return id;
@@ -26,12 +36,12 @@ public class Chapter {
         this.id = id;
     }
 
-    public String getUserEmail() {
-        return userEmail;
+    public String getUserName() {
+        return userName;
     }
 
-    public void setUserEmail(String userEmail) {
-        this.userEmail = userEmail;
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     public String getName() {

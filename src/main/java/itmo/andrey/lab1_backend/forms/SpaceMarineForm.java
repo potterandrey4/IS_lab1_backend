@@ -9,7 +9,7 @@ import java.math.BigInteger;
 public class SpaceMarineForm {
 	private String name;
 	private Coordinates coordinates;
-	private Chapter chapter;
+	private ChapterForm chapter;
 	private String health;
 	private String height;
 	private String category;
@@ -31,11 +31,11 @@ public class SpaceMarineForm {
 		this.coordinates = coordinates;
 	}
 
-	public Chapter getChapter() {
+	public ChapterForm getChapter() {
 		return chapter;
 	}
 
-	public void setChapter(Chapter chapter) {
+	public void setChapter(ChapterForm chapter) {
 		this.chapter = chapter;
 	}
 

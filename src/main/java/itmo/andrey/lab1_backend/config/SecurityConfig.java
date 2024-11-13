@@ -32,8 +32,8 @@ public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
-				.cors().and()  // Включаем CORS
-				.csrf().disable()  // Отключаем CSRF
+				.cors().and()
+				.csrf().disable()
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/auth/signin", "/auth/signup", "/auth/verify-token").permitAll()
 						.anyRequest().authenticated()
@@ -42,7 +42,6 @@ public class SecurityConfig {
 						.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 				);
 
-		// Добавляем JWT-фильтр перед стандартным фильтром аутентификации
 		http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
