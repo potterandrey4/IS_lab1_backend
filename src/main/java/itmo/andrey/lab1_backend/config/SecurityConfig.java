@@ -1,7 +1,7 @@
 package itmo.andrey.lab1_backend.config;
 
-import itmo.andrey.lab1_backend.filters.JwtAuthenticationFilter;
-import itmo.andrey.lab1_backend.utils.JwtTokenUtil;
+import itmo.andrey.lab1_backend.service.filter.JwtAuthenticationFilter;
+import itmo.andrey.lab1_backend.util.JwtTokenUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
