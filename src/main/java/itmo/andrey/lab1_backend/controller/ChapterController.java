@@ -5,8 +5,11 @@ import itmo.andrey.lab1_backend.domain.entitie.SpaceMarine;
 import itmo.andrey.lab1_backend.domain.dto.ChapterDTO;
 import itmo.andrey.lab1_backend.repository.ChapterRepository;
 import itmo.andrey.lab1_backend.repository.SpaceMarineRepository;
+import itmo.andrey.lab1_backend.service.UserService;
 import itmo.andrey.lab1_backend.util.JwtTokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,45 +21,34 @@ import java.util.List;
 public class ChapterController {
     private final ChapterRepository chapterRepository;
     private final SpaceMarineRepository spaceMarineRepository;
-    private final JwtTokenUtil jwtTokenUtil;
+    private final UserService userService;
 
     @Autowired
-    public ChapterController(JwtTokenUtil jwtTokenUtil, ChapterRepository chapterRepository, SpaceMarineRepository spaceMarineRepository) {
+    public ChapterController(UserService userService, ChapterRepository chapterRepository, SpaceMarineRepository spaceMarineRepository) {
         this.chapterRepository = chapterRepository;
         this.spaceMarineRepository = spaceMarineRepository;
-        this.jwtTokenUtil = jwtTokenUtil;
+        this.userService = userService;
     }
 
     @PostMapping("/add")
     public ResponseEntity<?> add(@RequestBody ChapterDTO formData, @RequestHeader("Authorization") String token) {
-        if (token == null || !token.startsWith("Bearer ")) {
-            return ResponseEntity.status(400).body("{\"error\":\"Некорректный заголовок авторизации\"}");
-        }
-
-        String tokenWithoutBearer = token.substring(7);
-        boolean validToken;
-        String name;
-        try {
-            validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-            name = jwtTokenUtil.getNameFromJwtToken(tokenWithoutBearer);
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
-        }
+        boolean validToken = userService.checkValidToken(token);
 
         if (validToken) {
             Chapter chapter = new Chapter();
             try {
-                chapter.setUserName(name);
                 chapter.setName(formData.getName());
                 chapter.setCount(formData.getMarinesCount());
                 chapter.setWorld(formData.getWorld());
                 chapterRepository.save(chapter);
-                return ResponseEntity.ok("{\"msg\":\"Chapter успешно добавлен}");
+                return ResponseEntity.ok("{\"msg\":\"Chapter успешно добавлен\"}");
+            } catch (DataIntegrityViolationException e) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("{\"error\":\"Орден с таким именем уже существует. Пожалуйста, выберите другое имя.\"}");
             } catch (Exception e) {
                 return ResponseEntity.status(400).body("{\"error\":\"Произошла ошибка добавления Chapter: " + e.getMessage() + "\"}");
             }
         } else {
-            return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена}");
+            return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена\"}");
         }
     }
 
@@ -64,40 +56,39 @@ public class ChapterController {
     public ResponseEntity<?> deleteChapterWithReassignment(
             @PathVariable Long id,
             @RequestHeader("Authorization") String token,
-            @RequestParam("newChapterId") Long newChapterId) {
+            @RequestParam(value = "newChapterId", required = false) Long newChapterId,
+            @RequestParam(value = "deleteSpaceMarines", defaultValue = "false") boolean deleteSpaceMarines) {
 
-        if (token == null || !token.startsWith("Bearer ")) {
-            return ResponseEntity.status(400).body("{\"error\":\"Некорректный заголовок авторизации\"}");
-        }
-        String tokenWithoutBearer = token.substring(7);
-        boolean validToken;
-        String name;
-        try {
-            validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-            name = jwtTokenUtil.getNameFromJwtToken(tokenWithoutBearer);
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
-        }
+        boolean validToken = userService.checkValidToken(token);
 
         if (validToken) {
             return chapterRepository.findById(id).map(chapter -> {
-                if (!chapter.getUserName().equals(name)) {
-                    return ResponseEntity.status(403).body("{\"error\":\"Нет прав на удаление этого объекта\"}");
-                }
-
                 List<SpaceMarine> marines = spaceMarineRepository.findByChapter(chapter);
-                Chapter newChapter = chapterRepository.findById(newChapterId).orElse(null);
-                if (newChapter == null) {
-                    return ResponseEntity.status(400).body("{\"error\":\"Новый орден не найден\"}");
-                }
 
-                for (SpaceMarine marine : marines) {
-                    marine.setChapter(newChapter);
-                    spaceMarineRepository.save(marine);
-                }
+                if (newChapterId != null) {
+                    // Проверяем, существует ли новый орден
+                    Chapter newChapter = chapterRepository.findById(newChapterId).orElse(null);
+                    if (newChapter == null) {
+                        return ResponseEntity.status(400).body("{\"error\":\"Новый орден не найден\"}");
+                    }
 
-                chapterRepository.delete(chapter);
-                return ResponseEntity.ok().body("{\"message\":\"Chapter успешно удален и космодесантники переназначены\"}");
+                    // Переназначаем всех космодесантников на новый орден
+                    for (SpaceMarine marine : marines) {
+                        marine.setChapter(newChapter);
+                        spaceMarineRepository.save(marine);
+                    }
+
+                    // Удаляем старый орден
+                    chapterRepository.delete(chapter);
+                    return ResponseEntity.ok().body("{\"message\":\"Chapter успешно удален и космодесантники переназначены\"}");
+                } else if (deleteSpaceMarines) {
+                    // Удаляем все связанные SpaceMarine
+                    spaceMarineRepository.deleteAll(marines);
+                    chapterRepository.delete(chapter);
+                    return ResponseEntity.ok().body("{\"message\":\"Chapter и связанные SpaceMarine успешно удалены\"}");
+                } else {
+                    return ResponseEntity.status(400).body("{\"error\":\"Не указано действие для связанных SpaceMarine (удаление или переназначение)\"}");
+                }
             }).orElseGet(() -> ResponseEntity.status(404).body("{\"error\":\"Chapter не найден\"}"));
 
         } else {
@@ -110,5 +101,4 @@ public class ChapterController {
         List<Chapter> allChapters = chapterRepository.findAll();
         return ResponseEntity.ok(allChapters);
     }
-
 }

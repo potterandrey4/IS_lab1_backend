@@ -13,17 +13,14 @@ public class Chapter {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false)
     private Long id;
-    @Column(nullable = false, name="user_name")
-    private String userName;
-    @Column(nullable = false)
+    @Column(unique = true, nullable = false)
     private String name;
     @Column(nullable = false)
     private String count;
     @Column()
     private String world;
 
-    public Chapter(String userName, String name, String count, String world) {
-        this.userName = userName;
+    public Chapter(String name, String count, String world) {
         this.name = name;
         this.count = count;
         this.world = world;

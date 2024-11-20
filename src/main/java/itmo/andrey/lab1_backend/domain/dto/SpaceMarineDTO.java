@@ -46,11 +46,11 @@ public class SpaceMarineDTO {
 
 @Getter
 enum WeaponType {
-	HEAVY_BOLTGUN ("Heavy Boltgun"),
-	BOLT_PISTOL ("Bolt Pistol"),
-	BOLT_RIFLE ("Bolt Rifle"),
-	COMBI_FLAMER ("Combi Flamer"),
-	GRAVY_GUN ("Gravy Gun");
+	HEAVY_BOLTGUN ("Тяжёлый болтовой пистолет"),
+	BOLT_PISTOL ("Болтовой пистолет"),
+	BOLT_RIFLE ("Болтовая винтовка"),
+	COMBI_FLAMER ("Комби огнемёт"),
+	GRAVY_GUN ("Гравипушка");
 
 	private final String type;
 	private WeaponType(String type) {
@@ -60,11 +60,11 @@ enum WeaponType {
 
 @Getter
 enum AstartesCategory {
-	SCOUT ("Scout"),
-	AGGRESSOR ("Aggressor"),
-	INCEPTOR ("Inceptor"),
-	SUPPRESSOR ("Suppressor"),
-	TERMINATOR ("Terminator");
+	SCOUT ("Скаут"),
+	AGGRESSOR ("Агрессор"),
+	INCEPTOR ("Инцептор"),
+	SUPPRESSOR ("Супрессор"),
+	TERMINATOR ("Терминатор");
 
 	private final String category;
 	private AstartesCategory(String category) {

@@ -1,211 +1,131 @@
 package itmo.andrey.lab1_backend.controller;
 
-import itmo.andrey.lab1_backend.domain.entitie.Chapter;
-import itmo.andrey.lab1_backend.domain.entitie.SpaceMarine;
 import itmo.andrey.lab1_backend.domain.dto.SpaceMarineDTO;
-import itmo.andrey.lab1_backend.repository.ChapterRepository;
-import itmo.andrey.lab1_backend.repository.SpaceMarineRepository;
-import itmo.andrey.lab1_backend.util.JwtTokenUtil;
+import itmo.andrey.lab1_backend.service.SpaceMarineService;
+import itmo.andrey.lab1_backend.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Objects;
-
 @RestController
-@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequestMapping("/space-marine")
 public class SpaceMarineController {
-	private final SpaceMarineRepository spaceMarineRepository;
-	private final JwtTokenUtil jwtTokenUtil;
-	private final ChapterRepository chapterRepository;
 
-	@Autowired
-	public SpaceMarineController(JwtTokenUtil jwtTokenUtil, SpaceMarineRepository spaceMarineRepository, ChapterRepository chapterRepository) {
-		this.spaceMarineRepository = spaceMarineRepository;
-		this.jwtTokenUtil = jwtTokenUtil;
-		this.chapterRepository = chapterRepository;
-	}
+    private final SpaceMarineService spaceMarineService;
+    private final UserService userService;
+    @Autowired
+    private final SimpMessagingTemplate messagingTemplate;
 
-	@PostMapping("/add")
-	public ResponseEntity<?> add(@Valid @RequestBody SpaceMarineDTO formData, @RequestHeader("Authorization") String token) {
-		if (token == null || !token.startsWith("Bearer ")) {
-			return ResponseEntity.status(400).body("{\"error\":\"Некорректный заголовок авторизации\"}");
-		}
+    @Autowired
+    public SpaceMarineController(SimpMessagingTemplate messagingTemplate, SpaceMarineService spaceMarineService, UserService userService) {
+        this.spaceMarineService = spaceMarineService;
+        this.userService = userService;
+        this.messagingTemplate = messagingTemplate;
+    }
 
-		String tokenWithoutBearer = token.substring(7);
-		boolean validToken;
-		String userName;
-		try {
-			validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-			userName = jwtTokenUtil.getNameFromJwtToken(tokenWithoutBearer);
-		} catch (Exception e) {
-			return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
-		}
+    @PostMapping("/add")
+    public ResponseEntity<?> add(@Valid @RequestBody SpaceMarineDTO formData, @RequestHeader("Authorization") String token) {
+        boolean validToken = userService.checkValidToken(token);
 
-		if (validToken) {
-			SpaceMarine spaceMarine = new SpaceMarine();
-			try {
-				if (formData.getName() == null || formData.getCategory() == null) {
-					return ResponseEntity.status(400).body("{\"error\":\"Required fields are missing\"}");
-				}
 
-				spaceMarine.setName(formData.getName());
-				spaceMarine.setCoordinates_x(formData.getCoordinates().getX());
-				spaceMarine.setCoordinates_y(formData.getCoordinates().getY());
-				spaceMarine.setCreationDate(String.valueOf(java.time.LocalDateTime.now()));
-				spaceMarine.setHealth(formData.getHealth());
-				spaceMarine.setHeight(formData.getHeight());
-				spaceMarine.setCategory(formData.getCategory());
-				spaceMarine.setWeaponType(formData.getWeaponType());
-				spaceMarine.setUserName(userName);
+        if (validToken) {
+            try {
+                boolean added = spaceMarineService.add(formData, userService.extractUsername(token));
+                if (added) {
+                    sendUpdateMessage("add");
+                    return ResponseEntity.ok().body("{\"message\":\"SpaceMarine успешно добавлен\"}");
+                } else {
+                    return ResponseEntity.status(400).body("{\"error\": \"Ошибка при добавлении SpaceMarine\"}");
+                }
 
-				String idChapter = formData.getChapter().getId();
-				if (!Objects.equals(idChapter, "")) {
-					spaceMarine.setChapter(chapterRepository.findById(Long.parseLong(idChapter)));
-				} else {
-					Chapter newChapter = new Chapter(userName, formData.getChapter().getName(), formData.getChapter().getMarinesCount(), formData.getChapter().getWorld());
-					chapterRepository.save(newChapter);
-					spaceMarine.setChapter(newChapter);
-				}
+            } catch (DataIntegrityViolationException e) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("{\"error\":\"Орден с таким именем уже существует. Пожалуйста, выберите другое имя.\"}");
+            } catch (Exception e) {
+                return ResponseEntity.status(400).body("{\"error\":\"" + e.getMessage() + "\"}");
+            }
+        } else {
+            return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
+        }
+    }
 
-				spaceMarineRepository.save(spaceMarine);
-			} catch (Exception e) {
-				return ResponseEntity.status(400).body("{\"error\":\"" + e.getMessage() + "\"}");
-			}
-			return ResponseEntity.ok().body("{\"message\":\"SpaceMarine успешно добавлен\"}");
-		}
-		else {
-			return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
-		}
-	}
+    @PostMapping("get/{id}")
+    public ResponseEntity<?> get(@PathVariable("id") Long id, @RequestHeader("Authorization") String token) {
+        boolean validToken = userService.checkValidToken(token);
+        if (!validToken) {
+            return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
+        }
+        return ResponseEntity.ok().body(spaceMarineService.getSpaceMarineById(id));
+    }
 
-	@PostMapping("get/{id}")
-	public ResponseEntity<?> get(@PathVariable("id") Long id, @RequestHeader("Authorization") String token) {
-		if (token == null || !token.startsWith("Bearer ")) {
-			return ResponseEntity.status(400).body("{\"error\":\"Некорректный заголовок авторизации\"}");
-		}
-		String tokenWithoutBearer = token.substring(7);
-		boolean validToken;
-		try {
-			validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-		} catch (Exception e) {
-			return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
-		}
+    @PutMapping("/update/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody SpaceMarineDTO formData,
+                                    @RequestHeader("Authorization") String token) {
 
-		if (validToken) {
-			return ResponseEntity.ok().body(spaceMarineRepository.findById(id));
-		} else {
-			return ResponseEntity.status(400).body("{\"error\":\"Данного id не существует\"}");
-		}
-	}
+        boolean validToken = userService.checkValidToken(token);
+        if (!validToken) {
+            return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
+        }
 
-	@PutMapping("/update/{id}")
-	public ResponseEntity<?> update(@PathVariable Long id, @RequestBody SpaceMarineDTO formData, @RequestHeader("Authorization") String token) {
-		if (token == null || !token.startsWith("Bearer ")) {
-			return ResponseEntity.status(400).body("{\"error\":\"Некорректный заголовок авторизации\"}");
-		}
+        try {
+            boolean updated = spaceMarineService.updateSpaceMarine(id, formData, userService.extractUsername(token));
+            if (updated) {
+                sendUpdateMessage("update");
+                return ResponseEntity.ok().body("{\"message\":\"SpaceMarine успешно обновлен\"}");
+            } else {
+                return ResponseEntity.status(404).body("{\"error\":\"SpaceMarine не найден\"}");
+            }
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("{\"error\":\"Орден с таким именем уже существует. Пожалуйста, выберите другое имя.\"}");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
 
-		String tokenWithoutBearer = token.substring(7);
-		boolean validToken;
-		String userName;
-		try {
-			validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-			userName = jwtTokenUtil.getNameFromJwtToken(tokenWithoutBearer);
-		} catch (Exception e) {
-			return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
-		}
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+        boolean validToken = userService.checkValidToken(token);
+        if (!validToken) {
+            return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
+        }
 
-		if (validToken) {
-			return spaceMarineRepository.findById(id).map(spaceMarine -> {
-				if (!spaceMarine.getUserName().equals(userName)) {
-					return ResponseEntity.status(403).body("{\"error\":\"Нет прав на изменение этого объекта\"}");
-				}
+        try {
+            boolean deleted = spaceMarineService.deleteSpaceMarine(id, userService.extractUsername(token));
+            if (deleted) {
+                sendUpdateMessage("delete");
+                return ResponseEntity.ok().body("{\"message\":\"SpaceMarine успешно удален\"}");
+            } else {
+                return ResponseEntity.status(404).body("{\"error\":\"SpaceMarine не найден\"}");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
 
-				try {
-					if (formData.getName() == null || formData.getCategory() == null) {
-						return ResponseEntity.status(400).body("{\"error\":\"Required fields are missing\"}");
-					}
+    @PostMapping("/all-objects")
+    public ResponseEntity<?> getAllObjects() {
+        return ResponseEntity.ok(spaceMarineService.getAllObjects());
+    }
 
-					spaceMarine.setName(formData.getName());
-					spaceMarine.setCoordinates_x(formData.getCoordinates().getX());
-					spaceMarine.setCoordinates_y(formData.getCoordinates().getY());
-					spaceMarine.setChapter(new Chapter(userName, formData.getChapter().getName(), formData.getChapter().getMarinesCount(), formData.getChapter().getWorld()));
-					spaceMarine.setHealth(formData.getHealth());
-					spaceMarine.setHeight(formData.getHeight());
-					spaceMarine.setCategory(formData.getCategory());
-					spaceMarine.setWeaponType(formData.getWeaponType());
+    @PostMapping("/user-objects")
+    public ResponseEntity<?> getUserObjects(@RequestHeader("Authorization") String token) {
+        boolean validToken = userService.checkValidToken(token);
 
-					spaceMarineRepository.save(spaceMarine);
-					return ResponseEntity.ok().body("{\"message\":\"SpaceMarine успешно обновлен\"}");
-				} catch (Exception e) {
-					return ResponseEntity.status(400).body("{\"error\":\"" + e.getMessage() + "\"}");
-				}
-			}).orElseGet(() -> ResponseEntity.status(404).body("{\"error\":\"SpaceMarine не найден\"}"));
-		} else {
-			return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
-		}
-	}
+        if (validToken) {
+            return ResponseEntity.ok().body(spaceMarineService.getUserObjects(userService.extractUsername(token)));
+        } else {
+            return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
+        }
+    }
 
-	@DeleteMapping("/delete/{id}")
-	public ResponseEntity<?> delete(@PathVariable Long id, @RequestHeader("Authorization") String token) {
-		if (token == null || !token.startsWith("Bearer ")) {
-			return ResponseEntity.status(400).body("{\"error\":\"Некорректный заголовок авторизации\"}");
-		}
+    public void sendUpdateMessage(String message) {
+        messagingTemplate.convertAndSend("/topic/updates", message);
+    }
 
-		String tokenWithoutBearer = token.substring(7);
-		boolean validToken;
-		String name;
-		try {
-			validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-			name = jwtTokenUtil.getNameFromJwtToken(tokenWithoutBearer);
-		} catch (Exception e) {
-			return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
-		}
-
-		if (validToken) {
-			return spaceMarineRepository.findById(id).map(spaceMarine -> {
-				if (!spaceMarine.getUserName().equals(name)) {
-					return ResponseEntity.status(403).body("{\"error\":\"Нет прав на удаление этого объекта\"}");
-				}
-
-				spaceMarineRepository.delete(spaceMarine);
-				return ResponseEntity.ok().body("{\"message\":\"SpaceMarine успешно удален\"}");
-			}).orElseGet(() -> ResponseEntity.status(404).body("{\"error\":\"SpaceMarine не найден\"}"));
-		} else {
-			return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
-		}
-	}
-
-	@PostMapping("/all-objects")
-	public ResponseEntity<?> getAllObjects() {
-		List<SpaceMarine> allMarines = spaceMarineRepository.findAll();
-		return ResponseEntity.ok(allMarines);
-	}
-
-	@PostMapping("/user-objects")
-	public ResponseEntity<?> getUserObjects(@RequestHeader("Authorization") String token) {
-		if (token == null || !token.startsWith("Bearer ")) {
-			return ResponseEntity.status(400).body("{\"error\":\"Некорректный заголовок авторизации\"}");
-		}
-
-		String tokenWithoutBearer = token.substring(7);
-		boolean validToken;
-		String name;
-		try {
-			validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-			name = jwtTokenUtil.getNameFromJwtToken(tokenWithoutBearer);
-		} catch (Exception e) {
-			return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
-		}
-
-		if (validToken) {
-			List<SpaceMarine> userMarines = spaceMarineRepository.findByUserName(name);
-			return ResponseEntity.ok(userMarines);
-		} else {
-			return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
-		}
-	}
 }

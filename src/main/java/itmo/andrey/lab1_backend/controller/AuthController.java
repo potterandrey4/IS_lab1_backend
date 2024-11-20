@@ -4,6 +4,7 @@ import itmo.andrey.lab1_backend.domain.entitie.User;
 import itmo.andrey.lab1_backend.domain.dto.SignInDTO;
 import itmo.andrey.lab1_backend.domain.dto.SignUpDTO;
 import itmo.andrey.lab1_backend.repository.UserRepository;
+import itmo.andrey.lab1_backend.service.UserCacheService;
 import itmo.andrey.lab1_backend.util.JwtTokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,16 +16,26 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 	private final JwtTokenUtil jwtTokenUtil;
 	private final UserRepository userRepository;
+	private final UserCacheService userCacheService;
 
 	@Autowired
-	public AuthController(JwtTokenUtil jwtTokenUtil, UserRepository userRepository) {
+	public AuthController(JwtTokenUtil jwtTokenUtil, UserRepository userRepository, UserCacheService userCacheService) {
 		this.jwtTokenUtil = jwtTokenUtil;
 		this.userRepository = userRepository;
+		this.userCacheService = userCacheService;
 	}
 
 	@PostMapping("/signin")
 	public ResponseEntity<?> signinForm(@RequestBody SignInDTO formData) {
-		User user = userRepository.findByName(formData.getName());
+		User user = userCacheService.getUserFromCache(formData.getName());
+
+		if (user == null) {
+			user = userRepository.findByName(formData.getName());
+			if (user != null) {
+				userCacheService.cacheUser(user);
+			}
+		}
+
 		if (user != null && user.getPassword().equals(formData.getPassword())) {
 			String jwtToken = jwtTokenUtil.generateJwtToken(user.getName());
 			return ResponseEntity.ok("{\"token\":\"" + jwtToken + "\"}");
@@ -37,11 +48,13 @@ public class AuthController {
 	public ResponseEntity<?> signupForm(@RequestBody SignUpDTO formData) {
 		User newUser = new User(formData.getName(), formData.getPassword());
 		String jwtToken = jwtTokenUtil.generateJwtToken(newUser.getName());
+
 		if (userRepository.existsByName(newUser.getName())) {
 			return ResponseEntity.status(409).body("{\"error\":\"" + "данный логин занят, попробуйте другой или войдите в существующий аккаунт" + "\"}");
 		} else {
 			try {
 				userRepository.save(newUser);
+				userCacheService.cacheUser(newUser);
 			} catch (Exception e) {
 				return ResponseEntity.status(400).body("{\"error\":\"" + e.getMessage() + "\"}");
 			}
@@ -62,7 +75,7 @@ public class AuthController {
 		try {
 			validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
 			String nameFromJwtToken = jwtTokenUtil.getNameFromJwtToken(tokenWithoutBearer);
-			correctName = userRepository.findByName(nameFromJwtToken) != null;
+			correctName = userCacheService.isUserInCache(nameFromJwtToken) || userRepository.findByName(nameFromJwtToken) != null;
 		} catch (Exception e) {
 			return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
 		}
