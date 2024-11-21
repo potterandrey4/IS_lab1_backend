@@ -7,4 +7,5 @@ public class SignUpDTO {
 
 	private String name;
 	private String password;
+	private boolean candidateAdmin;
 }

@@ -66,23 +66,19 @@ public class ChapterController {
                 List<SpaceMarine> marines = spaceMarineRepository.findByChapter(chapter);
 
                 if (newChapterId != null) {
-                    // Проверяем, существует ли новый орден
                     Chapter newChapter = chapterRepository.findById(newChapterId).orElse(null);
                     if (newChapter == null) {
                         return ResponseEntity.status(400).body("{\"error\":\"Новый орден не найден\"}");
                     }
 
-                    // Переназначаем всех космодесантников на новый орден
                     for (SpaceMarine marine : marines) {
                         marine.setChapter(newChapter);
                         spaceMarineRepository.save(marine);
                     }
 
-                    // Удаляем старый орден
                     chapterRepository.delete(chapter);
                     return ResponseEntity.ok().body("{\"message\":\"Chapter успешно удален и космодесантники переназначены\"}");
                 } else if (deleteSpaceMarines) {
-                    // Удаляем все связанные SpaceMarine
                     spaceMarineRepository.deleteAll(marines);
                     chapterRepository.delete(chapter);
                     return ResponseEntity.ok().body("{\"message\":\"Chapter и связанные SpaceMarine успешно удалены\"}");

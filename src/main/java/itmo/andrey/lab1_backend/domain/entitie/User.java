@@ -1,6 +1,5 @@
 package itmo.andrey.lab1_backend.domain.entitie;
 
-import itmo.andrey.lab1_backend.domain.enums.RoleEnum;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,14 +17,11 @@ public class User {
 	private String name;
 	@Column(nullable = false)
 	private String password;
-//	@Enumerated(EnumType.STRING)
-//	@Column(nullable = false)
-//	private RoleEnum role = RoleEnum.USER;
+	@Column(nullable = false)
+	private boolean isAdmin;
 
 	public User(String username, String password) {
-//	public User(String username, String password, RoleEnum role) {
 		this.name = username;
 		this.password = password;
-//		this.role = RoleEnum.USER;
 	}
 }

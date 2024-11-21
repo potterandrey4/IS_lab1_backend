@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class AdminRequestDTO {
     private String name;
-    private String reason; // Причина заявки
+    private String reason;
 }

@@ -16,11 +16,13 @@ import java.util.Optional;
 public class SpaceMarineService {
     private final SpaceMarineRepository spaceMarineRepository;
     private final ChapterRepository chapterRepository;
+    private final UserService userService;
 
     @Autowired
-    public SpaceMarineService(SpaceMarineRepository spaceMarineRepository, ChapterRepository chapterRepository) {
+    public SpaceMarineService(SpaceMarineRepository spaceMarineRepository, ChapterRepository chapterRepository, UserService userService) {
         this.spaceMarineRepository = spaceMarineRepository;
         this.chapterRepository = chapterRepository;
+        this.userService = userService;
     }
 
     public boolean add(SpaceMarineDTO formData, String userName) {
@@ -59,7 +61,7 @@ public class SpaceMarineService {
         }
 
         SpaceMarine spaceMarine = optionalSpaceMarine.get();
-        if (!spaceMarine.getUserName().equals(userName)) {
+        if (!spaceMarine.getUserName().equals(userName) || !userService.checkAdmin(userName)) {
             throw new SecurityException("Нет прав на изменение этого объекта");
         }
 
@@ -95,7 +97,7 @@ public class SpaceMarineService {
         }
 
         SpaceMarine spaceMarine = optionalSpaceMarine.get();
-        if (!spaceMarine.getUserName().equals(userName)) {
+        if (!spaceMarine.getUserName().equals(userName) || !userService.checkAdmin(userName)) {
             throw new SecurityException("Нет прав на удаление этого объекта");
         }
 
