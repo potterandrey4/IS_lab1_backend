@@ -54,15 +54,16 @@ public class SpaceMarineService {
         return true;
     }
 
-    public boolean updateSpaceMarine(Long id, SpaceMarineDTO formData, String userName) {
+    public boolean updateSpaceMarine(Long id, SpaceMarineDTO formData, String token) {
         Optional<SpaceMarine> optionalSpaceMarine = spaceMarineRepository.findById(id);
         if (optionalSpaceMarine.isEmpty()) {
             return false;
         }
 
         SpaceMarine spaceMarine = optionalSpaceMarine.get();
-        if (!spaceMarine.getUserName().equals(userName) || !userService.checkAdmin(userName)) {
-            throw new SecurityException("Нет прав на изменение этого объекта");
+        String userName = userService.extractUsername(token);
+        if (userService.getUserRole(userName).equals("user") && !spaceMarine.getUserName().equals(userName)) {
+            throw new SecurityException("Нет прав на удаление этого объекта");
         }
 
         if (formData.getName() == null || formData.getCategory() == null) {
@@ -90,14 +91,18 @@ public class SpaceMarineService {
         return true;
     }
 
-    public boolean deleteSpaceMarine(Long id, String userName) {
+    public boolean deleteSpaceMarine(Long id, String token) {
         Optional<SpaceMarine> optionalSpaceMarine = spaceMarineRepository.findById(id);
         if (optionalSpaceMarine.isEmpty()) {
             return false;
         }
 
+        String userName = userService.extractUsername(token);
         SpaceMarine spaceMarine = optionalSpaceMarine.get();
-        if (!spaceMarine.getUserName().equals(userName) || !userService.checkAdmin(userName)) {
+//        System.out.println("Клиент: " + userName + "; права: " + userService.getUserRole(userName));
+//        System.out.println("Создатель объекта: " + spaceMarine.getUserName());
+//        System.out.println("-----------------");
+        if (userService.getUserRole(userName).equals("user") && !spaceMarine.getUserName().equals(userName)) {
             throw new SecurityException("Нет прав на удаление этого объекта");
         }
 

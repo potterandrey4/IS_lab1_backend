@@ -72,7 +72,7 @@ public class SpaceMarineController {
         }
 
         try {
-            boolean updated = spaceMarineService.updateSpaceMarine(id, formData, userService.extractUsername(token));
+            boolean updated = spaceMarineService.updateSpaceMarine(id, formData, token);
             if (updated) {
                 sendUpdateMessage("update");
                 return ResponseEntity.ok().body("{\"message\":\"SpaceMarine успешно обновлен\"}");
@@ -87,22 +87,21 @@ public class SpaceMarineController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> deleteSpaceMarine(@PathVariable Long id, @RequestHeader("Authorization") String token) {
         boolean validToken = userService.checkValidToken(token);
         if (!validToken) {
             return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
         }
 
         try {
-            boolean deleted = spaceMarineService.deleteSpaceMarine(id, userService.extractUsername(token));
-            if (deleted) {
-                sendUpdateMessage("delete");
-                return ResponseEntity.ok().body("{\"message\":\"SpaceMarine успешно удален\"}");
+            boolean result = spaceMarineService.deleteSpaceMarine(id, token);
+            if (result) {
+                return ResponseEntity.ok("{\"message\":\"SpaceMarine успешно удален\"}");
             } else {
                 return ResponseEntity.status(404).body("{\"error\":\"SpaceMarine не найден\"}");
             }
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body("{\"error\":\"" + e.getMessage() + "\"}");
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body("{\"error\":\"" + e.getMessage() + "\"}");
         }
     }
 

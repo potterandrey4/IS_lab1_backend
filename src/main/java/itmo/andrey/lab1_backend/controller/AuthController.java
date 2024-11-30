@@ -73,7 +73,7 @@ public class AuthController {
             return ResponseEntity.status(409).body("{\"error\":\"Логин занят. Попробуйте другой.\"}");
         }
 
-        if (isFirstAdmin && formData.isCandidateAdmin()) {
+        if (isFirstAdmin) {
             newUser.setAdmin(true);
         } else if (formData.isCandidateAdmin()) {
             newUser.setAdmin(false);
@@ -82,6 +82,7 @@ public class AuthController {
             newAdminRequest.setReason(adminRequestDTO.getReason());
             adminRequestRepository.save(newAdminRequest);
         }
+
         userRepository.save(newUser);
         userCacheService.cacheUser(newUser);
 
@@ -91,116 +92,10 @@ public class AuthController {
 
     @PostMapping("/verify-token")
     public ResponseEntity<?> checkToken(@RequestHeader("Authorization") String token) {
-        if (token == null || !token.startsWith("Bearer ")) {
-            return ResponseEntity.status(400).body("{\"error\":\"Некорректный заголовок авторизации\"}");
-        }
-
-        String tokenWithoutBearer = token.substring(7);
-        boolean validToken;
-        boolean correctName;
-
-        try {
-            validToken = jwtTokenUtil.validateJwtToken(tokenWithoutBearer);
-            String nameFromJwtToken = jwtTokenUtil.getNameFromJwtToken(tokenWithoutBearer);
-            correctName = userRepository.findByName(nameFromJwtToken) != null;
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
-        }
-
-        if (validToken && correctName) {
-            return ResponseEntity.ok("{\"message\":\"Токен валиден\"}");
-        }
-        return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
-    }
-
-    @PostMapping("/verify-admin")
-    public ResponseEntity<?> checkAdmin(@RequestHeader("Authorization") String token) {
-        boolean validToken;
-        boolean correctName;
-        boolean isAdmin;
-
-        try {
-            validToken = jwtTokenUtil.validateJwtToken(token);
-            String nameFromJwtToken = userService.extractUsername(token);
-            correctName = userCacheService.isUserInCache(nameFromJwtToken) || userService.extractUsername(token) != null;
-            isAdmin = userCacheService.getUserFromCache(nameFromJwtToken).isAdmin();
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body("{\"error\":\"Ошибка обработки токена: " + e.getMessage() + "\"}");
-        }
-
-        if (validToken && correctName && isAdmin) {
-            return ResponseEntity.ok("{\"message\":\"Токен валиден\"}");
-        }
-        return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
-    }
-
-    @PostMapping("/approve-admin")
-    public ResponseEntity<?> approveAdmin(@RequestParam String username, @RequestHeader("Authorization") String token) {
-        boolean validToken = userService.checkValidToken(token);
-        if (!validToken) {
+        String role = userService.getUserRole(userService.extractUsername(token));
+        if (role == null) {
             return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
         }
-
-        String adminName = userService.extractUsername(token);
-        User admin = userRepository.findByName(adminName);
-        if (admin == null) {
-            admin = userRepository.findByName(adminName);
-        }
-
-        if (admin == null || !admin.isAdmin()) {
-            return ResponseEntity.status(403).body("{\"error\":\"Доступ запрещен.\"}");
-        }
-
-        User user = userRepository.findByName(username);
-        if (user == null) {
-            return ResponseEntity.status(404).body("{\"error\":\"Пользователь не найден.\"}");
-        }
-
-        user.setAdmin(true);
-        userRepository.save(user);
-
-        return ResponseEntity.ok("{\"message\":\"Пользователь назначен администратором.\"}");
-    }
-
-
-    @GetMapping("/admin-requests")
-    public ResponseEntity<?> getAdminRequests(@RequestHeader("Authorization") String token) {
-        boolean validToken = userService.checkValidToken(token);
-        if (!validToken) {
-            return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
-        }
-
-        String adminName = userService.extractUsername(token);
-        User admin = userRepository.findByName(adminName);
-        if (admin == null) {
-            admin = userRepository.findByName(adminName);
-        }
-
-        if (admin == null || !admin.isAdmin()) {
-            return ResponseEntity.status(403).body("{\"error\":\"Доступ запрещен.\"}");
-        }
-
-        List<AdminRequest> adminRequests = adminRequestRepository.findAll();
-        return ResponseEntity.ok(adminRequests);
-    }
-
-    @PostMapping("/user-status")
-    public ResponseEntity<?> getUserStatus(@RequestHeader("Authorization") String token) {
-        boolean validToken = jwtTokenUtil.validateJwtToken(token);
-        if (!validToken) {
-            return ResponseEntity.status(401).body("{\"error\":\"Неверный или просроченный токен\"}");
-        }
-
-        String adminName = userService.extractUsername(token);
-        User admin = userRepository.findByName(adminName);
-        if (admin == null) {
-            admin = userRepository.findByName(adminName);
-        }
-
-        if (admin == null || !admin.isAdmin()) {
-            return ResponseEntity.status(409).body("{\"isAdmin\":\"false\"}");
-        }
-
-        return ResponseEntity.ok("{\"isAdmin\":\"true\"}");
+        return ResponseEntity.ok("{\"role\":\"" + role + "\"}");
     }
 }

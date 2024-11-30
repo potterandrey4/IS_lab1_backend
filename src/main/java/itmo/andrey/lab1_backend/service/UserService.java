@@ -33,7 +33,7 @@ public class UserService {
     }
 
     public String extractUsername(String token) {
-        if (token == null || !token.startsWith("Bearer ")) {
+        if (!checkValidToken(token)) {
             return null;
         }
 
@@ -47,12 +47,15 @@ public class UserService {
         return userName;
     }
 
-    public boolean checkAdmin(String userName) {
-        User admin = userRepository.findByName(userName);
-        if (admin == null) {
-            admin = userRepository.findByName(userName);
+    public String getUserRole(String username) {
+        if (username == null) {
+            return null;
         }
 
-        return admin == null || !admin.isAdmin();
+        User user = userRepository.findByName(username);
+        if (user != null && user.isAdmin()) {
+            return "admin";
+        }
+        return "user";
     }
 }
